@@ -51,6 +51,7 @@ class Mpu9150:
     def read_debug_loop(self):
         while 1:
             self.read_debug()
+            time.sleep(0.01)
             
     def debug_loop(self):
         read_thread = threading.Thread(target = self.read_debug_loop)
@@ -123,7 +124,7 @@ class Mpu9150:
         NUM_BYTES = 23
         p = None
         while self.s.inWaiting() >= NUM_BYTES:
-            print "."
+            #print "."
             rs = self.s.read(NUM_BYTES)
             if ord(rs[0]) == ord('$'):
                 #print ord(rs[0]) + ord(rs[1])
