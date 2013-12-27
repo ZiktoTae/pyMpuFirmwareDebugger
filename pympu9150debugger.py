@@ -49,7 +49,9 @@ class Mpu9150:
             self.send(command)
 
     def read_debug_loop(self):
-        while 1:
+        self.running = True
+        self.read_debug_flag = True
+        while self.read_debug_flag:
             self.read_debug()
             time.sleep(0.01)
             
@@ -61,6 +63,7 @@ class Mpu9150:
             command = raw_input("To Mpu9150>")
             if command == "q":
                 read_thread.shutdown = True
+                self.read_debug_flag = False
                 read_thread.join()
                 break
             self.send(command)
@@ -123,8 +126,17 @@ class Mpu9150:
     def read_debug(self):
         NUM_BYTES = 23
         p = None
+
         while self.s.inWaiting() >= NUM_BYTES:
-            #print "."
+            self.running = not self.running
+
+            if(self.running):
+                print "\r+",
+            else:
+                print "\r-",
+
+            sys.stdout.flush()
+                
             rs = self.s.read(NUM_BYTES)
             if ord(rs[0]) == ord('$'):
                 #print ord(rs[0]) + ord(rs[1])
@@ -134,7 +146,10 @@ class Mpu9150:
                     d.display()
                     print d
                     #self.debug_delegate.dispatch(d)
-
+                elif pkt_code == 3:
+                    d = data_packet(rs)
+                    d.display()
+                    print d
 
     def read(self):
 
@@ -159,13 +174,12 @@ class Mpu9150:
                 elif pkt_code == 2:
 
                     p = quat_packet(rs)
-                    print p
+                    #
                     #self.quat_delegate.dispatch(p) 
 
                 elif pkt_code == 3:
-
                     d = data_packet(rs)
-                    print d
+                    #d.display()
                     #self.data_delegate.dispatch(d)
 
                 else:

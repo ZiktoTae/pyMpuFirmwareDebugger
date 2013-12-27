@@ -41,7 +41,7 @@ class debug_packet (object):
 
 
     def display(self):
-        print s
+        print "debug : " + self.s
         #sys.stdout.write(self.s)
         #f_file.write(self.s + '\n')
 
