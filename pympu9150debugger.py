@@ -4,6 +4,10 @@ import serial
 from serial.tools import list_ports
 import sys
 import os
+from mpudata import quat_packet, debug_packet, data_packet
+import threading
+import time
+
 
 
 class Mpu9150:
@@ -15,18 +19,55 @@ class Mpu9150:
             print "accel - print accel data"
             print "connect - connect to module"
             print "sample - change thie sampling rate"
+        elif line == "write":
+            self.write()
+        elif line == "debug loop":
+            self.debug_loop()
+        elif line == "read":
+            self.read()
         elif line == "connect":
             self.connect()
         elif line == "sample":
             self.change_sampling_rate()
         elif line =="":
             print "say something"     
-        elif line == "quit":
+        elif line == "q":
             print "quitting"
-                
         else:
             print line+" : unkonwn command. type help"
 
+
+    def send(self, str):
+         for i in range(0,len(str)):
+                self.s.write(str[i])
+                time.sleep(0.01)
+            
+    def write(self):
+        command = ""
+        while command != "q":
+            command = raw_input("To Mpu>")
+            self.send(command)
+
+    def read_debug_loop(self):
+        while 1:
+            self.read_debug()
+            
+    def debug_loop(self):
+        read_thread = threading.Thread(target = self.read_debug_loop)
+        read_thread.start()
+
+        while 1:
+            command = raw_input("To Mpu9150>")
+            if command == "q":
+                read_thread.shutdown = True
+                read_thread.join()
+                break
+            self.send(command)
+                        
+    def loop_read(self):
+        while 1:
+            self.read()
+        
     def ToggleAccel(self):
         print "toggle"
 
@@ -39,10 +80,10 @@ class Mpu9150:
 
         self.port = ports[int(num)]
 
-        self.ser = serial.Serial(self.port , 115200 , timeout=1)
+        self.s = serial.Serial(self.port , 115200 , timeout=1)
         #self.ser.open()
 
-        if self.ser.isOpen():
+        if self.s.isOpen():
             print "Connected..."
         else:
             print "Port busy"
@@ -76,6 +117,73 @@ class Mpu9150:
             # unix
             for port in list_ports.comports():
                 yield port[0]
+
+
+    def read_debug(self):
+        NUM_BYTES = 23
+        p = None
+        while self.s.inWaiting() >= NUM_BYTES:
+            print "."
+            rs = self.s.read(NUM_BYTES)
+            if ord(rs[0]) == ord('$'):
+                #print ord(rs[0]) + ord(rs[1])
+                pkt_code = ord(rs[1])
+                if pkt_code == 1:
+                    d = debug_packet(rs)
+                    d.display()
+                    print d
+                    #self.debug_delegate.dispatch(d)
+
+
+    def read(self):
+
+        NUM_BYTES = 23
+
+        p = None
+
+        while self.s.inWaiting() >= NUM_BYTES:
+
+            rs = self.s.read(NUM_BYTES)
+
+            if ord(rs[0]) == ord('$'):
+
+                pkt_code = ord(rs[1])
+
+                if pkt_code == 1:
+
+                    d =debug_packet(rs)
+                    print d
+                    #self.debug_delegate.dispatch(d)
+
+                elif pkt_code == 2:
+
+                    p = quat_packet(rs)
+                    print p
+                    #self.quat_delegate.dispatch(p) 
+
+                elif pkt_code == 3:
+
+                    d = data_packet(rs)
+                    print d
+                    #self.data_delegate.dispatch(d)
+
+                else:
+                    sss = "no handler for pkt_code",pkt_code
+                    print sss
+                    #f_file.write(sss + '\n')
+
+            else:
+
+                c = ' '
+                print "serial misaligned!"
+                               
+                while not ord(c) == ord('$'):
+
+                    c = self.s.read(1)
+
+                self.s.read(NUM_BYTES-1)
+
+
 
 if __name__ == "__main__":
     command = ""
