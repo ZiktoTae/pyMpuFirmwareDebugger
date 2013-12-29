@@ -20,8 +20,6 @@ def four_bytes(d1, d2, d3, d4):
 
     return d
 
-
-
 class debug_packet (object):
 
     # body of packet is a debug string
@@ -107,10 +105,7 @@ class data_packet (object):
             self.data[0] = four_bytes(l[3],l[4],l[5],l[6]) * 1.0 / (1<<16)
             
         else:   # unsupported
-
             pass
-
-
 
     def display(self):
         if self.type == 0:
@@ -159,7 +154,6 @@ class data_packet (object):
 			print sss 
 			#f_file.write(sss + '\n')
         else:
-
 			print 'what?'
 			#f_file.write('what' + '\n')
 
@@ -227,8 +221,6 @@ class quat_packet (object):
                 [ (euler0 * 180.0 / 3.14159) - 90 ]])
             print sss
             #f_file.write(sss + '\n');
-
-
 
     def to_q(self):
         return Quaternion(self.q0, self.q1, self.q2, self.q3)

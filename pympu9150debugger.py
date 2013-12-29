@@ -129,14 +129,14 @@ class Mpu9150:
 
         while self.s.inWaiting() >= NUM_BYTES:
             self.running = not self.running
-
+            '''
             if(self.running):
                 print "\r+",
             else:
                 print "\r-",
 
             sys.stdout.flush()
-                
+            '''    
             rs = self.s.read(NUM_BYTES)
             if ord(rs[0]) == ord('$'):
                 #print ord(rs[0]) + ord(rs[1])
@@ -148,8 +148,14 @@ class Mpu9150:
                     #self.debug_delegate.dispatch(d)
                 elif pkt_code == 3:
                     d = data_packet(rs)
-                    d.display()
-                    print d
+                    #d.display()
+                    data = d.data
+                    datatype = d.type
+
+                    if datatype == 0:
+                        print "1:"+data[0]
+                        print "2:"+data[1]
+                        print "3:"+data[2]
 
     def read(self):
 
@@ -162,7 +168,6 @@ class Mpu9150:
             rs = self.s.read(NUM_BYTES)
 
             if ord(rs[0]) == ord('$'):
-
                 pkt_code = ord(rs[1])
 
                 if pkt_code == 1:
@@ -179,7 +184,7 @@ class Mpu9150:
 
                 elif pkt_code == 3:
                     d = data_packet(rs)
-                    #d.display()
+                    #d.display()3
                     #self.data_delegate.dispatch(d)
 
                 else:
