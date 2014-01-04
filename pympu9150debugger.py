@@ -211,5 +211,3 @@ if __name__ == "__main__":
     while(command != "quit"):
         command = raw_input("mpu9150> ")
         mpu9150.command(command)
-        
-    

@@ -1,6 +1,8 @@
 #!/usr/bin/python
 # =============== PACKETS ================= 
 # For 16-bit signed integers.
+from euclid import Quaternion, Vector3
+
 
 def two_bytes(d1,d2):
     d = ord(d1)*256 + ord(d2)

@@ -1,4 +1,3 @@
-
 #!/usr/bin/python
 import sys
 import serial
@@ -8,17 +7,21 @@ import os
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+import euclid
 
 class mpu9150interface(object):
     def __init__(self):
         #self.connect()
         #self.read()
         print "init"
-        self.SIZE = 500
+        self.SIZE = 100
         self.x_list = [None]*self.SIZE
         self.y_list = [None]*self.SIZE
         self.z_list = [None]*self.SIZE
         self.mag_list = [None]*self.SIZE
+        self.quat_list = [None]*self.SIZE
+        self.accel_list = [None]*self.SIZE
+        self.calibrated_list = [None] * self.SIZE
         
         self.port="null"
         self.gravity = np.array([0,0,0])
@@ -83,14 +86,23 @@ class mpu9150interface(object):
 
         time.sleep(0.01)
         while self.s.inWaiting() >= NUM_BYTES:
+            if self.index_accel >= self.SIZE:
+                break
             rs = self.s.read(NUM_BYTES)
             if ord(rs[0]) == ord('$'):
                 pkt_code = ord(rs[1])
                 #print "."
-                print "\r"+str(pkt_code),
+                #print "\r"+str(pkt_code),
                 if pkt_code == 1:
                     d = debug_packet(rs)
-                    d.display()                
+                    d.display()
+                elif pkt_code == 2:
+                    p = quat_packet(rs)
+                    self.quat_list[self.index_quat] = p
+                    self.index_quat = self.index_quat + 1
+                    
+                    #p.display()
+                    print "+"
                 elif pkt_code == 3:
                     d = data_packet(rs)
                     #d.display()
@@ -98,40 +110,53 @@ class mpu9150interface(object):
                     datatype = d.type
 
                     if datatype ==0:
-                        self.index = self.index+1
+                        #self.index = self.index+1
                         #print self.index
-                        self.x_list[self.index] = d.data[0]
-                        self.y_list[self.index] = d.data[1]
-                        self.z_list[self.index] = d.data[2]
+                        self.accel_list[self.index_accel] = d
+                        self.x_list[self.index_accel] = d.data[0]
+                        self.y_list[self.index_accel] = d.data[1]
+                        self.z_list[self.index_accel] = d.data[2]
 
                         vec = [d.data[0] , d.data[1], d.data[2]]
                         vec = vec - self.gravity
                         norm = np.linalg.norm(vec)
                         norm = norm-1
-                        self.mag_list[self.index] = norm
-                                                                    
-                        if (self.index %2 == 1):
-                            print "+",
-                        else:
-                            print "-",
+                        self.mag_list[self.index_accel] = norm
                         
-                    
-                sys.stdout.flush()
+                        self.index_accel = self.index_accel +1
+                        print "-",
+            sys.stdout.flush()
 
     def read(self):
-        self.index = 0
+        self.index_quat = 0
+        self.index_accel = 0 
         print "logging..."
         n=0
-        while( self.index < (self.SIZE-1)):
+        while( self.index_accel < (self.SIZE-1)):
             self.read_debug()
-            print self.index,
+            print self.index_accel,
             sys.stdout.flush()
 
         self.s.close()
         print "plotting..."
-        plt.plot(self.mag_list)
-        plt.show()
-        
+        #plt.plot(self.mag_list)
+        #plt.show()
+
+        for i in range(0,self.SIZE):
+            #print i 
+            q = self.quat_list[i]
+            d = self.accel_list[i]
+
+            if (q is not None) and (d is not None):
+            #if not isinstance(q,None) and not isinstance(d,None)
+                #print d
+                v = euclid.Vector3(d.data[0], d.data[1], d.data[2])
+                quat = q.to_q().conjugated()
+                #print quat
+                #print v
+                ###########
+                q = quat*v
+                self.calibrated_list[i] = q
 
 if __name__ =="__main__":
     mpu =mpu9150interface()
